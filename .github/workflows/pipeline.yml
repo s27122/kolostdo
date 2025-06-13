@@ -2,11 +2,12 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches:
+      - '**'
 
 jobs:
   unit-tests:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -20,6 +21,7 @@ jobs:
       run: npm test
 
   linting:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -32,27 +34,38 @@ jobs:
     - name: Run linting
       run: npx eslint .
 
+  build:
+    if: github.ref != 'refs/heads/main'
+    needs: [unit-tests, linting]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Docker image
+      run: docker build -t my-app:${{ github.sha }} .
+    - name: Save Docker image artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-image
+        path: .
+
   staging-deploy:
     if: github.ref == 'refs/heads/main'
-    needs: build-docker-image
     runs-on: ubuntu-latest
     environment: staging
     steps:
     - uses: actions/checkout@v3
     - name: Deploy to staging
-      run: |
-        echo "Deploying to staging environment..."
-        # Simulate deployment commands
+      run: echo "Deploying to staging..."
     - name: Wait for approval
       uses: trstringer/manual-approval@v1
       with:
-        secret: ${{ github.token }}
-        approvers: team-leads
-        instruction: "Czy wdrożenie na środowisku staging wygląda poprawnie i można kontynuować na produkcję?"
+        secret: ${{ secrets.GITHUB_TOKEN }}
+        approvers: s27122
+        instruction: "Czy wdrożenie wygląda dobrze?"
 
   production-deploy:
-    if: github.ref == 'refs/heads/main' && needs.staging-deploy.result == 'success'
-    needs: [staging-deploy]
+    if: github.ref == 'refs/heads/main'
+    needs: staging-deploy
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -64,4 +77,15 @@ jobs:
         docker tag my-app:${{ github.sha }} my-docker-repo/my-app:latest
         docker push my-docker-repo/my-app:latest
 
-     
+  final-report:
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Generate report
+      run: |
+        echo "Pipeline result: ${{ job.status }}" > report.txt
+    - name: Upload report
+      uses: actions/upload-artifact@v4
+      with:
+        name: final-report
+        path: report.txt
