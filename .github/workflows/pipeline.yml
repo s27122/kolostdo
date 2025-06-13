@@ -45,7 +45,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Docker image
-      run: docker build -t kolokwiumTDO:${{ github.sha }} .
+      run: docker build -t kolokwiumtdo:${{ github.sha }} .
     - name: Save Docker image artifact
       uses: actions/upload-artifact@v4
       with:
@@ -80,16 +80,16 @@ jobs:
         run: docker --version
 
       - name: Build Docker image
-        run: docker build -t kolokwiumTDO:${{ github.sha }} .
+        run: docker build -t kolokwiumtdo:${{ github.sha }} .
 
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
       - name: Tag Docker image
-        run: docker tag kolokwiumTDO:${{ github.sha }} ${{ secrets.DOCKER_HUB_USERNAME }}/kolokwiumTDO:latest
+        run: docker tag kolokwiumtdo:${{ github.sha }} ${{ secrets.DOCKER_HUB_USERNAME }}/kolokwiumtdo:latest
 
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/kolokwiumTDO:latest
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/kolokwiumtdo:latest
 
 
   final-report:
