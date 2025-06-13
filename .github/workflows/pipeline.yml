@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Install dependencies
+      run: npm install
+    - name: Run unit tests
+      run: npm test
+
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Install ESLint
+      run: npm install eslint --save-dev
+    - name: Run linting
+      run: npx eslint .
+
+  staging-deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build-docker-image
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+    - uses: actions/checkout@v3
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Simulate deployment commands
+    - name: Wait for approval
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.token }}
+        approvers: team-leads
+        instruction: "Czy wdrożenie na środowisku staging wygląda poprawnie i można kontynuować na produkcję?"
+
+  production-deploy:
+    if: github.ref == 'refs/heads/main' && needs.staging-deploy.result == 'success'
+    needs: [staging-deploy]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - uses: actions/checkout@v3
+    - name: Login to Docker Hub
+      run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+    - name: Push to Docker Hub
+      run: |
+        docker tag my-app:${{ github.sha }} my-docker-repo/my-app:latest
+        docker push my-docker-repo/my-app:latest
+
+     
