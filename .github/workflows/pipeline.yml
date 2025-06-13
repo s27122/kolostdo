@@ -67,8 +67,9 @@ jobs:
         approvers: s27122
         instruction: "Czy wdrożenie wygląda dobrze?"
 
-  production-deploy:
-  if: github.ref == 'refs/heads/main' && needs.staging-deploy.result == 'success'
+production-deploy:
+  if: ${{ github.ref == 'refs/heads/main' && needs.staging-deploy.result == 'success' }}
+
   needs: [staging-deploy]
   runs-on: ubuntu-latest
   environment: production
@@ -89,7 +90,6 @@ jobs:
 
     - name: Push Docker image
       run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/my-app:latest
-
 
 
   final-report:
